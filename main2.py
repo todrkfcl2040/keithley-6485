@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
             inst.write("SYST:ZCOR OFF") # Disable zero correct
             inst.write("RANG:AUTO ON")  # Auto range on
             inst.write("TRIG:COUNT 1")  # One reading per trigger
+            # Move these from update_plot to here
             inst.write("NPLC 0.01")         # Fastest sampling
             inst.write("AZER OFF")          # Autozero off
             inst.write("AVER:STAT OFF")     # Averaging off
@@ -156,13 +157,7 @@ class MainWindow(QMainWindow):
             return
         elapsed = time.time() - self.start_time
         try:
-            inst.write("INIT")
-            inst.write("TRIG:COUNT 1")
-            inst.write("NPLC 0.01")
-            inst.write("AZER OFF")
-            inst.write("AVER:STAT OFF")
-            inst.write("FORM:ELEM READ")
-            value = float(inst.query("FETCH?").strip().split(',')[0])
+            value = float(inst.query("READ?").strip().split(',')[0])
             self.times.append(elapsed)
             self.values.append(value)
             self.canvas.clear()
