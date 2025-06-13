@@ -114,6 +114,7 @@ class MainWindow(QMainWindow):
         except ValueError:
             print("Invalid sampling rate.")
             return
+        interval = max(interval, 1)  # allow very fast sampling (1 ms minimum)
         self.timer.setInterval(interval)
         self.rate_input.setEnabled(False)
 
@@ -156,6 +157,11 @@ class MainWindow(QMainWindow):
         elapsed = time.time() - self.start_time
         try:
             inst.write("INIT")
+            inst.write("TRIG:COUNT 1")
+            inst.write("NPLC 0.01")
+            inst.write("AZER OFF")
+            inst.write("AVER:STAT OFF")
+            inst.write("FORM:ELEM READ")
             value = float(inst.query("FETCH?").strip().split(',')[0])
             self.times.append(elapsed)
             self.values.append(value)
