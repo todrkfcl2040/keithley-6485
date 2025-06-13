@@ -6,7 +6,7 @@ import pyvisa
 import time
 rm = pyvisa.ResourceManager()
 try:
-    inst = rm.open_resource('GPIB0::22::INSTR')  # Replace 22 with actual GPIB address of 6485
+    inst = rm.open_resource('GPIB0::14::INSTR')  # Replace 22 with actual GPIB address of 6485
     demo_mode = False
 except Exception:
     inst = None
@@ -78,13 +78,15 @@ class MainWindow(QMainWindow):
         if demo_mode:
             print("Demo mode activated. No instrument connected.")
         else:
-            inst.timeout = 2000
             inst.write("*RST")
             inst.write("SYST:ZCH OFF")  # Disable zero check
             inst.write("SYST:ZCOR OFF") # Disable zero correct
             inst.write("RANG:AUTO ON")  # Auto range on
             inst.write("TRIG:COUNT 1")  # One reading per trigger
-            inst.write("NPLC 0.01")  # Short integration time for faster sampling
+            inst.write("NPLC 0.01")         # Fastest sampling
+            inst.write("AZER OFF")          # Autozero off
+            inst.write("AVER:STAT OFF")     # Averaging off
+            inst.write("FORM:ELEM READ")    # Read only value
 
     def change_mode(self, mode_text):
         mode_code = mode_text.split()[0]
@@ -112,20 +114,15 @@ class MainWindow(QMainWindow):
         except ValueError:
             print("Invalid sampling rate.")
             return
-        self.timer.stop()
         self.timer.setInterval(interval)
-        self.timer.start()
         self.rate_input.setEnabled(False)
 
         self.start_time = time.time()
         self.times.clear()
         self.values.clear()
         if not demo_mode:
-            inst.write("FORM:ELEM READ")  # Set return format
-            inst.write("TRAC:CLE")                   # Clear buffer
-            inst.write("TRAC:POIN 100")              # Set buffer size
-            inst.write("TRAC:FEED:CONT NEXT")        # Feed next readings to buffer
-            inst.write("TRIG:COUNT 100")             # 100 readings
+            inst.write(f"CONF:{self.current_mode}")  # Set return format
+        self.timer.start(interval)
 
     def pause_measurement(self):
         self.paused = not self.paused
@@ -156,15 +153,12 @@ class MainWindow(QMainWindow):
             self.canvas.grid(True)
             self.plot_widget.draw()
             return
+        elapsed = time.time() - self.start_time
         try:
             inst.write("INIT")
-            buffer_data = inst.query("TRAC:DATA? 1, 100").strip()
-            values = list(map(float, buffer_data.split(',')))
-            elapsed_start = time.time() - self.start_time
-            interval = self.timer.interval() / 1000  # convert ms to sec
-            for i, val in enumerate(values):
-                self.times.append(elapsed_start + i * interval)
-                self.values.append(val)
+            value = float(inst.query("FETCH?").strip().split(',')[0])
+            self.times.append(elapsed)
+            self.values.append(value)
             self.canvas.clear()
             self.canvas.plot(self.times, self.values, marker='o')
             ylabel = ylabels.get(self.current_mode, self.current_mode)
