@@ -89,6 +89,9 @@ class MainWindow(QMainWindow):
             inst.write("AVER:STAT OFF")     # Averaging off
             inst.write("FORM:ELEM READ")    # Read only value
 
+        self.count_label = QLabel("Data Points: 0")
+        left_layout.insertWidget(0, self.count_label)
+
     def change_mode(self, mode_text):
         mode_code = mode_text.split()[0]
         self.current_mode = mode_code
@@ -155,6 +158,7 @@ class MainWindow(QMainWindow):
             value = math.sin(elapsed)
             self.times.append(elapsed)
             self.values.append(value)
+            self.count_label.setText(f"Data Points: {len(self.values)}")
             self.canvas.clear()
             self.canvas.plot(self.times, self.values, marker='o')
             ylabel = ylabels.get(self.current_mode, self.current_mode)
@@ -173,6 +177,7 @@ class MainWindow(QMainWindow):
                 for i, v in enumerate(values):
                     self.times.append(elapsed + i * 0.05)
                     self.values.append(v)
+                self.count_label.setText(f"Data Points: {len(self.values)}")
                 self.canvas.clear()
                 self.canvas.plot(self.times, self.values, marker='o')
                 ylabel = ylabels.get(self.current_mode, self.current_mode)
