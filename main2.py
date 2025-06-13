@@ -169,9 +169,11 @@ class MainWindow(QMainWindow):
         elapsed = time.time() - self.start_time
         try:
             pass  # INIT is now called once during start
-            value = float(inst.query("READ?").strip())
-            self.times.append(elapsed)
-            self.values.append(value)
+            raw = inst.query("READ?").strip()
+            values = [float(x) for x in raw.split(',') if x]
+            for i, value in enumerate(values):
+                self.times.append(elapsed + i * 0.05)
+                self.values.append(value)
             self.count_label.setText(f"Data Points: {len(self.values)}")
             self.canvas.clear()
             self.canvas.plot(self.times, self.values, marker='o')
