@@ -123,8 +123,16 @@ class MainWindow(QMainWindow):
         self.times.clear()
         self.values.clear()
         if not demo_mode:
-            inst.write(f"CONF:{self.current_mode}")  # Set return format
-        self.timer.start(interval)
+            inst.write(f"CONF:{self.current_mode}")
+            inst.write("TRAC:CLE")
+            inst.write("TRAC:POIN 100")
+            inst.write("TRAC:FEED SENS")
+            inst.write("TRAC:FEED:CONT NEXT")
+            inst.write("TRIG:SOUR IMM")
+            inst.write("TRIG:COUNT 4")
+            inst.write("INIT")
+            inst.query("*OPC?")
+        self.timer.start(200)
 
     def pause_measurement(self):
         self.paused = not self.paused
@@ -157,9 +165,11 @@ class MainWindow(QMainWindow):
             return
         elapsed = time.time() - self.start_time
         try:
-            value = float(inst.query("READ?").strip().split(',')[0])
-            self.times.append(elapsed)
-            self.values.append(value)
+            buffer_data = inst.query("TRAC:DATA? 1, 4").strip()
+            values = [float(v) for v in buffer_data.split(',') if v]
+            for i, v in enumerate(values):
+                self.times.append(elapsed + i * 0.05)
+                self.values.append(v)
             self.canvas.clear()
             self.canvas.plot(self.times, self.values, marker='o')
             ylabel = ylabels.get(self.current_mode, self.current_mode)
