@@ -27,8 +27,8 @@ class MainWindow(QMainWindow):
         ])
         self.mode_list.currentTextChanged.connect(self.change_mode)
 
-        self.rate_label = QLabel("Sampling Rate (ms):")
-        self.rate_input = QLineEdit("500")
+#        self.rate_label = QLabel("Sampling Rate (ms):")
+#        self.rate_input = QLineEdit("500")
 
         self.start_button = QPushButton("Start")
         self.pause_button = QPushButton("Pause")
@@ -44,8 +44,8 @@ class MainWindow(QMainWindow):
 
         left_layout = QVBoxLayout()
         left_layout.addWidget(self.mode_list)
-        left_layout.addWidget(self.rate_label)
-        left_layout.addWidget(self.rate_input)
+#        left_layout.addWidget(self.rate_label)
+#        left_layout.addWidget(self.rate_input)
         left_layout.addWidget(self.start_button)
         left_layout.addWidget(self.pause_button)
         left_layout.addWidget(self.stop_button)
@@ -111,16 +111,18 @@ class MainWindow(QMainWindow):
                 inst.write("CURR:RANG:AUTO ON")
 
     def start_measurement(self):
-        try:
-            interval = int(self.rate_input.text())
-            if interval <= 0:
-                raise ValueError
-        except ValueError:
-            print("Invalid sampling rate.")
-            return
-        interval = max(interval, 1)  # allow very fast sampling (1 ms minimum)
+#        try:
+#            interval = int(self.rate_input.text())
+#            if interval <= 0:
+#                raise ValueError
+#        except ValueError:
+#            print("Invalid sampling rate.")
+#            return
+#        interval = max(interval, 1)  # allow very fast sampling (1 ms minimum)
+#        self.timer.setInterval(interval)
+#        self.rate_input.setEnabled(False)
+        interval = 50  # 1000 ms / 20 points = 50 ms
         self.timer.setInterval(interval)
-        self.rate_input.setEnabled(False)
 
         self.start_time = time.time()
         self.times.clear()
@@ -139,7 +141,7 @@ class MainWindow(QMainWindow):
 
     def stop_measurement(self):
         self.timer.stop()
-        self.rate_input.setEnabled(True)
+#        self.rate_input.setEnabled(True)
 
     def update_plot(self):
         ylabels = {
@@ -167,10 +169,9 @@ class MainWindow(QMainWindow):
         elapsed = time.time() - self.start_time
         try:
             pass  # INIT is now called once during start
-            values = [float(v) for v in inst.query("FETCH?").strip().split(',') if v]
-            for i, value in enumerate(values):
-                self.times.append(elapsed + i * (self.timer.interval() / 1000))
-                self.values.append(value)
+            value = float(inst.query("READ?").strip())
+            self.times.append(elapsed)
+            self.values.append(value)
             self.count_label.setText(f"Data Points: {len(self.values)}")
             self.canvas.clear()
             self.canvas.plot(self.times, self.values, marker='o')
