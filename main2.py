@@ -126,17 +126,13 @@ class MainWindow(QMainWindow):
         self.times.clear()
         self.values.clear()
         if not demo_mode:
-            inst.write("*CLS")  # Clear previous errors
+            inst.write("*CLS")
             inst.write(f"CONF:{self.current_mode}")
-            inst.write("TRAC:CLE")
-            inst.write("TRAC:FEED SENS")
-            inst.write("TRAC:FEED:CONT NEXT")
-            inst.write("TRAC:POIN 100")
             inst.write("TRIG:SOUR IMM")
-            inst.write("TRIG:COUNT 4")
+            inst.write("TRIG:CONT ON")
+            inst.write("TRIG:COUNT 5")
             inst.write("INIT")
-            inst.query("*OPC?")
-        self.timer.start(200)
+        self.timer.start(interval)
 
     def pause_measurement(self):
         self.paused = not self.paused
@@ -170,22 +166,20 @@ class MainWindow(QMainWindow):
             return
         elapsed = time.time() - self.start_time
         try:
-            count = int(inst.query("TRAC:ACT?").strip())
-            if count >= 4:
-                buffer_data = inst.query("TRAC:DATA? 1, 4").strip()
-                values = [float(v) for v in buffer_data.split(',') if v]
-                for i, v in enumerate(values):
-                    self.times.append(elapsed + i * 0.05)
-                    self.values.append(v)
-                self.count_label.setText(f"Data Points: {len(self.values)}")
-                self.canvas.clear()
-                self.canvas.plot(self.times, self.values, marker='o')
-                ylabel = ylabels.get(self.current_mode, self.current_mode)
-                self.canvas.set_title(f"{ylabel} vs Time")
-                self.canvas.set_xlabel("Time (s)")
-                self.canvas.set_ylabel(ylabel)
-                self.canvas.grid(True)
-                self.plot_widget.draw()
+            pass  # INIT is now called once during start
+            values = [float(v) for v in inst.query("FETCH?").strip().split(',') if v]
+            for i, value in enumerate(values):
+                self.times.append(elapsed + i * (self.timer.interval() / 1000))
+                self.values.append(value)
+            self.count_label.setText(f"Data Points: {len(self.values)}")
+            self.canvas.clear()
+            self.canvas.plot(self.times, self.values, marker='o')
+            ylabel = ylabels.get(self.current_mode, self.current_mode)
+            self.canvas.set_title(f"{ylabel} vs Time")
+            self.canvas.set_xlabel("Time (s)")
+            self.canvas.set_ylabel(ylabel)
+            self.canvas.grid(True)
+            self.plot_widget.draw()
         except Exception as e:
             print("Error:", e)
 
